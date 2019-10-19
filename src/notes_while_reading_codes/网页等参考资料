@@ -1,0 +1,16 @@
+1、关于DboW2回环检测及ORB_SLAM词袋的解释
+	https://blog.csdn.net/fuxingyin/article/details/51489160
+	另一篇更好的
+	https://www.cnblogs.com/luyb/p/5599042.html
+2、ORB_SLAM基础理论博客
+	（一）本篇讲成像理论，参数关系https://blog.csdn.net/qq_18661939/article/details/51829573
+	（二）本篇讲单应矩阵 https://blog.csdn.net/qq_18661939/article/details/51830546
+	      #（一）（二）分别介绍了相机估计位姿的两种方法
+	（三）奇异值分解
+	（四）词袋 https://blog.csdn.net/fuxingyin/article/details/51489160
+	（五）Ransic 消除误匹配https://blog.csdn.net/qq_18661939/article/details/52077491
+	（六）优化算法给g2o https://blog.csdn.net/qq_18661939/article/details/52152460
+3、视觉SLAM博客汇总
+	https://blog.csdn.net/qq_18661939/article/details/51782376
+4、ORB_SLAM2代码阅读笔记
+	https://blog.csdn.net/moyu123456789/article/details/91374510
