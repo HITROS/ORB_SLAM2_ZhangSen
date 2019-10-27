@@ -17,7 +17,11 @@
 * You should have received a copy of the GNU General Public License
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
+<<<<<<< HEAD
 //system.cc是整个ORB_SLAM的主接口，在ROS中通过类System完成对ORB_SLAM2算法代码的调用,在System中定义的函数，可以在编写ROS函数时直接调用，如TrackStereo（）开启跟踪
+=======
+//system.cc是整个ORB_SLAM的主接口
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 //ORB_SLAM2由3+1个平行线程组成，包括跟踪、局部建图、回环检测以及在回环检测后的全局BA优化。之所以说是3+1，因为第四个线程仅在回环检测并确认后才执行
 
 #include "System.h"
@@ -92,7 +96,11 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
                              mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
 
+<<<<<<< HEAD
     //初始化localMapping对象，并开启线程运行                         
+=======
+    //初始化localMaooing对象，并开启线程运行                         
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
     //Initialize the Local Mapping thread and launch
     mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
     mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
@@ -123,8 +131,12 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
 }
 
+<<<<<<< HEAD
 //双目跟踪线程，此函数在ROS程序中被直接调用
 // 参数为左目图像，右目图像，时间戳
+=======
+//双目跟踪线程
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
 {
     if(mSensor!=STEREO)
@@ -133,6 +145,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
         exit(-1);
     }   
 
+<<<<<<< HEAD
     // 检查模式改变
     // 这里mbActivateLocalizationMode和mbDeactivateLocalizationMode表示激活和失活的“动作”，相当于上升沿，下降沿两个动作，其真假表示是否要执行
     // Check mode change
@@ -142,6 +155,14 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
         if(mbActivateLocalizationMode)
         {
             // 仅定位模式(局部建图和回环检测线程关闭，用跟踪线程的重定位)
+=======
+    // 检查模型
+    // Check mode change
+    {
+        unique_lock<mutex> lock(mMutexMode);
+        if(mbActivateLocalizationMode)
+        {
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
             mpLocalMapper->RequestStop();
 
             // Wait until Local Mapping has effectively stopped
@@ -149,7 +170,11 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
             {
                 usleep(1000);
             }
+<<<<<<< HEAD
             // mpTracker指向一个tracking对象
+=======
+
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
             mpTracker->InformOnlyTracking(true);
             mbActivateLocalizationMode = false;
         }
@@ -161,7 +186,10 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
         }
     }
 
+<<<<<<< HEAD
     // 检查
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
     // Check reset
     {
     unique_lock<mutex> lock(mMutexReset);
@@ -172,7 +200,10 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
     }
     }
 
+<<<<<<< HEAD
     // 通过Tracking获得位姿
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
     cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft,imRight,timestamp);
 
     unique_lock<mutex> lock2(mMutexState);
@@ -297,8 +328,11 @@ void System::DeactivateLocalizationMode()
     mbDeactivateLocalizationMode = true;
 }
 
+<<<<<<< HEAD
 // 与上一次改变比较，判断地图是否发生大的改变
 // Returns true if there have been a big map change (loop closure, global BA)
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 bool System::MapChanged()
 {
     static int n=0;
@@ -312,14 +346,20 @@ bool System::MapChanged()
         return false;
 }
 
+<<<<<<< HEAD
 // 系统复位标志改变
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 void System::Reset()
 {
     unique_lock<mutex> lock(mMutexReset);
     mbReset = true;
 }
 
+<<<<<<< HEAD
 // 系统关闭
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 void System::Shutdown()
 {
     mpLocalMapper->RequestFinish();
@@ -341,8 +381,11 @@ void System::Shutdown()
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
 }
 
+<<<<<<< HEAD
 // 保存相机运行的轨迹
 // 此段略看
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 void System::SaveTrajectoryTUM(const string &filename)
 {
     cout << endl << "Saving camera trajectory to " << filename << " ..." << endl;

@@ -42,7 +42,10 @@ class ImageGrabber
 public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
+<<<<<<< HEAD
     // 主回调函数
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
     void GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight);
 
     ORB_SLAM2::System* mpSLAM;
@@ -52,7 +55,11 @@ public:
 
 int main(int argc, char **argv)
 {
+<<<<<<< HEAD
     ros::init(argc, argv, "Stereo");
+=======
+    ros::init(argc, argv, "RGBD");
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
     ros::start();
     // 判断给定参数数量是否正确，否则报错
     if(argc != 4)
@@ -62,7 +69,10 @@ int main(int argc, char **argv)
         return 1;
     }    
 
+<<<<<<< HEAD
     // 创建SLAM对象，这个对象包含了与ORB_SLAM核心代码的部分的调用接口。
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true); // 类ORB_SLAM2::System 定义在system.cc中
 
@@ -74,7 +84,10 @@ int main(int argc, char **argv)
     //判断是否需要进行在线矫正
     if(igb.do_rectify)
     {      
+<<<<<<< HEAD
         // 加载双目标定文件
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
         // Load settings related to stereo calibration
         cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ); // 类cv：：FIleStorage 用于将数据进行持久保存，将数据存入XML、yaml或从中读取
         if(!fsSettings.isOpened())
@@ -109,12 +122,15 @@ int main(int argc, char **argv)
         }
 
         //这里不懂其作用，回头要看
+<<<<<<< HEAD
         // 通过initUndistortRectifyMap与remap的配合可得出无畸变的图像,函数原型如下：
         /*
         void initUndistortRectifyMap( InputArray cameraMatrix, InputArray distCoeffs,
                            InputArray R, InputArray newCameraMatrix,
                            Size size, int m1type, OutputArray map1, OutputArray map2 );
         */
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
         cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,igb.M1l,igb.M2l);
         cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,igb.M1r,igb.M2r);
     }
@@ -123,6 +139,7 @@ int main(int argc, char **argv)
 
     //订阅ROS消息，订阅来自左右相机的信息
     //这段是重点，回头细看！！！
+<<<<<<< HEAD
     // 订阅左右相机消息,用了ROS里的消息过滤器，目的是对齐双目消息的时间戳，时间戳对齐有两种方式，这里使用的是没那么严格的时间戳相近
     message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "camera/right/image_raw", 1);
@@ -134,6 +151,12 @@ int main(int argc, char **argv)
 
     // 回调函数是类的成员函数GrabStereo,是类ImageGrabber的成员函数，第二个参数是ImageGrabber的对象指针，指向当前的对象igb
     // 1, _2为占位符， 代表接收的参数， 在函数真正调用的时候传入真正的参数。占位符的名字只是表示它在调用式中的顺序
+=======
+    message_filters::Subscriber<sensor_msgs::Image> left_sub(nh, "/camera/left/image_raw", 1);
+    message_filters::Subscriber<sensor_msgs::Image> right_sub(nh, "camera/right/image_raw", 1);
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
+    message_filters::Synchronizer<sync_pol> sync(sync_pol(10), left_sub,right_sub);
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
     sync.registerCallback(boost::bind(&ImageGrabber::GrabStereo,&igb,_1,_2));
 
     ros::spin();
@@ -151,7 +174,10 @@ int main(int argc, char **argv)
     return 0;
 }
 
+<<<<<<< HEAD
 // 接收到消息的回调函数
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const sensor_msgs::ImageConstPtr& msgRight)
 {
     // 把ros消息接收到的图像信息转换为opencv所能处理的cv：：mat类型
@@ -188,7 +214,11 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr& msgLeft,const se
     }
     else
     {
+<<<<<<< HEAD
         // 跟踪双目图像,传入参数为左右图像和时间戳
+=======
+        // 跟踪双目图像
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
         mpSLAM->TrackStereo(cv_ptrLeft->image,cv_ptrRight->image,cv_ptrLeft->header.stamp.toSec());
     }
 

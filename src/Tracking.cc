@@ -431,9 +431,13 @@ void Tracking::Track()
 
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
 
+<<<<<<< HEAD
         // 如果我们有了相机的初始位姿估计和匹配，跟踪局部地图
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         // 这块儿不太懂
+=======
+        // If we have an initial estimation of the camera pose and matching. Track the local map.
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
         if(!mbOnlyTracking)
         {
             if(bOK)
@@ -456,7 +460,10 @@ void Tracking::Track()
         // Update drawer
         mpFrameDrawer->Update(this);
 
+<<<<<<< HEAD
         // 如果跟踪良好，检查是否要插入关键帧
+=======
+>>>>>>> deffbeb704737e86354e8b46897cd353c876151d
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
