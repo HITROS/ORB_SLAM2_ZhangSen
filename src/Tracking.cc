@@ -431,13 +431,9 @@ void Tracking::Track()
 
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
 
-<<<<<<< HEAD
         // 如果我们有了相机的初始位姿估计和匹配，跟踪局部地图
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         // 这块儿不太懂
-=======
-        // If we have an initial estimation of the camera pose and matching. Track the local map.
->>>>>>> deffbeb704737e86354e8b46897cd353c876151d
         if(!mbOnlyTracking)
         {
             if(bOK)
@@ -460,16 +456,14 @@ void Tracking::Track()
         // Update drawer
         mpFrameDrawer->Update(this);
 
-<<<<<<< HEAD
         // 如果跟踪良好，检查是否要插入关键帧
-=======
->>>>>>> deffbeb704737e86354e8b46897cd353c876151d
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
             // Update motion model
             if(!mLastFrame.mTcw.empty())
             {
+                //  更新恒速运动模型中的mVelocity
                 cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
                 mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
@@ -479,7 +473,7 @@ void Tracking::Track()
                 mVelocity = cv::Mat();
 
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
-
+            //  清除视觉里程计中匹配点，指的是清除UpdateLastFrame中为当前帧临时添加的MapPoints
             // Clean VO matches
             for(int i=0; i<mCurrentFrame.N; i++)
             {
@@ -491,7 +485,8 @@ void Tracking::Track()
                         mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
                     }
             }
-
+            
+            // 清除临时的MapPoints，与上一步不同的是，这里吧MapPoints从数据库中删除，上面一次删除是从关键帧中删除
             // Delete temporal MapPoints
             for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
             {
@@ -500,10 +495,12 @@ void Tracking::Track()
             }
             mlpTemporalPoints.clear();
 
+            // 检测是否需要插入关键帧
             // Check if we need to insert a new keyframe
             if(NeedNewKeyFrame())
                 CreateNewKeyFrame();
-
+            
+            // 删除那些在BA中检测为outlier的点
             // We allow points with high innovation (considererd outliers by the Huber Function)
             // pass to the new keyframe, so that bundle adjustment will finally decide
             // if they are outliers or not. We don't want next frame to estimate its position
@@ -515,6 +512,7 @@ void Tracking::Track()
             }
         }
 
+        // 跟踪失败并且重定位也失败，那么就复位
         // Reset if the camera get lost soon after initialization
         if(mState==LOST)
         {
@@ -532,6 +530,7 @@ void Tracking::Track()
         mLastFrame = Frame(mCurrentFrame);
     }
 
+    // 保存当前帧的位姿信息
     // Store frame pose information to retrieve the complete camera trajectory afterwards.
     if(!mCurrentFrame.mTcw.empty())
     {
@@ -543,6 +542,7 @@ void Tracking::Track()
     }
     else
     {
+        // 跟踪跟丢时会发生，相对位姿使用上一次的值
         // This can happen if tracking is lost
         mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
         mlpReferences.push_back(mlpReferences.back());
@@ -553,6 +553,7 @@ void Tracking::Track()
 }
 
 
+// 双目的初始化，并行地计算基础矩阵和单应性矩阵；得到初始两帧的匹配、相对运动、初始MapPoints；地图在这里也被初始化
 void Tracking::StereoInitialization()
 {
     if(mCurrentFrame.N>500)
@@ -606,7 +607,7 @@ void Tracking::StereoInitialization()
         mState=OK;
     }
 }
-
+// 针对单目相机的初始化
 void Tracking::MonocularInitialization()
 {
 
@@ -783,6 +784,7 @@ void Tracking::CreateInitialMapMonocular()
     mState=OK;
 }
 
+// local Maping线程可能会将关键帧中的某些地图点替换掉，然而tracking线程中还要使用上一帧的信息，这里检查更新
 void Tracking::CheckReplacedInLastFrame()
 {
     for(int i =0; i<mLastFrame.N; i++)
@@ -801,8 +803,10 @@ void Tracking::CheckReplacedInLastFrame()
 }
 
 
+// 跟踪参考关键帧，在运动模型还未建立或者刚完成重定位时，通过BoW进行当前帧与参考关键帧特征点匹配，进而优化位姿
 bool Tracking::TrackReferenceKeyFrame()
 {
+    // 计算词袋
     // Compute Bag of Words vector
     mCurrentFrame.ComputeBoW();
 
@@ -845,6 +849,7 @@ bool Tracking::TrackReferenceKeyFrame()
     return nmatchesMap>=10;
 }
 
+// 更新上一帧，“上一帧”的地图点不一定会加入到Map中，这里是为了跟踪过程过程中将上一帧地图点投影到当前帧可以缩小匹配范围，加快匹配
 void Tracking::UpdateLastFrame()
 {
     // Update pose according to reference keyframe
@@ -874,6 +879,7 @@ void Tracking::UpdateLastFrame()
 
     sort(vDepthIdx.begin(),vDepthIdx.end());
 
+    // 根据ORB_SLAM2中近点可靠的结论，将近点包装成MapPoints
     // We insert all close points (depth<mThDepth)
     // If less than 100 close points, we insert the 100 closest ones.
     int nPoints = 0;
@@ -911,6 +917,17 @@ void Tracking::UpdateLastFrame()
     }
 }
 
+
+/*
+1. 先通过上一帧的位姿和速度预测当前帧相机的位姿
+
+2. 通过PnP方法估计相机位姿，在将上一帧的地图点投影到当前固定大小范围的帧平面上，如果匹配点少，那么扩大两倍的采点范围。
+
+3. 然后进行一次BA算法，通过最小二乘法优化相机的位姿。
+
+4. 优化位姿之后，对当前帧的关键点和地图点，抛弃无用的杂点，剩下的点供下一次操作使用。
+*/
+// 运动模式跟踪
 bool Tracking::TrackWithMotionModel()
 {
     ORBmatcher matcher(0.9,true);
@@ -941,9 +958,11 @@ bool Tracking::TrackWithMotionModel()
     if(nmatches<20)
         return false;
 
+    // 用所有的匹配结果来优化相机位姿
     // Optimize frame pose with all matches
     Optimizer::PoseOptimization(&mCurrentFrame);
 
+    // 剔除局外点，不合理点
     // Discard outliers
     int nmatchesMap = 0;
     for(int i =0; i<mCurrentFrame.N; i++)
@@ -974,6 +993,10 @@ bool Tracking::TrackWithMotionModel()
     return nmatchesMap>=10;
 }
 
+// 局部地图跟踪
+// 局部地图跟踪与相机位姿跟踪是tracking线程里面主要跟踪的内容，相机位姿跟踪部分代码量很大，逻辑也很复杂
+// 相机位姿跟踪相当于是里程计，同时进行初始的位姿估计，
+// 局部地图跟踪将共视图及其邻居中的地图点统统与当前帧进行匹配，用来优化相机位姿，
 bool Tracking::TrackLocalMap()
 {
     // We have an estimation of the camera pose and some map points tracked in the frame.
@@ -1020,7 +1043,7 @@ bool Tracking::TrackLocalMap()
         return true;
 }
 
-
+// 判断是否要生成关键帧，关键帧的判定条件在这里进行体现
 bool Tracking::NeedNewKeyFrame()
 {
     if(mbOnlyTracking)
@@ -1032,6 +1055,7 @@ bool Tracking::NeedNewKeyFrame()
 
     const int nKFs = mpMap->KeyFramesInMap();
 
+    
     // Do not insert keyframes if not enough frames have passed from last relocalisation
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && nKFs>mMaxFrames)
         return false;
@@ -1107,16 +1131,19 @@ bool Tracking::NeedNewKeyFrame()
         return false;
 }
 
+// 生成新的关键帧
 void Tracking::CreateNewKeyFrame()
 {
     if(!mpLocalMapper->SetNotStop(true))
         return;
 
+    // 将当前帧设为当前帧的参考关键帧
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;
 
+    // 对于双目或rgbd摄像头，为当前帧生成新的MapPoints
     if(mSensor!=System::MONOCULAR)
     {
         mCurrentFrame.UpdatePoseMatrices();
@@ -1187,6 +1214,15 @@ void Tracking::CreateNewKeyFrame()
     mpLastKeyFrame = pKF;
 }
 
+// 在局部地图中查找在当前帧视野范围内的点，将视野范围内的点和当前帧的特征点进行投影匹配
+/*
+步骤：
+1：遍历当前帧的mvpMapPoints，标记这些MapPoints不参与之后的搜索
+
+2：将所有局部MapPoints投影到当前帧，判断是否在视野范围内，然后进行投影匹配
+
+3：对于双目或rgbd摄像头，为当前帧生成新的MapPoints
+*/
 void Tracking::SearchLocalPoints()
 {
     // Do not search map points already matched
@@ -1238,7 +1274,8 @@ void Tracking::SearchLocalPoints()
         matcher.SearchByProjection(mCurrentFrame,mvpLocalMapPoints,th);
     }
 }
-
+// 更新局部地图
+// 局部地图包括有K1个关键帧，K2个临近关键帧和一个参考关键帧，以及由以上关键帧观测到的地图点MapPoints
 void Tracking::UpdateLocalMap()
 {
     // This is for visualization
@@ -1249,6 +1286,7 @@ void Tracking::UpdateLocalMap()
     UpdateLocalPoints();
 }
 
+// 更新局部关键点
 void Tracking::UpdateLocalPoints()
 {
     mvpLocalMapPoints.clear();
@@ -1274,7 +1312,7 @@ void Tracking::UpdateLocalPoints()
     }
 }
 
-
+// 更新局部关键帧
 void Tracking::UpdateLocalKeyFrames()
 {
     // Each map point vote for the keyframes in which it has been observed
@@ -1385,6 +1423,18 @@ void Tracking::UpdateLocalKeyFrames()
     }
 }
 
+// 重点函数之一：重定位
+// 重定位，从之前的关键帧中找出与当前帧之间拥有充足匹配点的候选帧，利用Ransac迭代，通过PnP求解位姿。
+/*
+1. 先计算当前帧的BOW值，并从关键帧数据库中查找候选的匹配关键帧
+
+2. 构建PnP求解器，标记杂点，准备好每个关键帧和当前帧的匹配点集
+
+3. 用PnP算法求解位姿，进行若干次P4P Ransac迭代，并使用非线性最小二乘优化，直到发现一个有充足inliers支持的相机位置
+
+4. 返回成功或失败
+
+*/
 bool Tracking::Relocalization()
 {
     // Compute Bag of Words Vector
@@ -1449,6 +1499,7 @@ bool Tracking::Relocalization()
             if(vbDiscarded[i])
                 continue;
 
+            // 进行5次Ransac迭代
             // Perform 5 Ransac Iterations
             vector<bool> vbInliers;
             int nInliers;
@@ -1548,6 +1599,7 @@ bool Tracking::Relocalization()
 
 }
 
+// 整个系统的复位重置，这个函数会把所有SLAM工作重置，相当于从头开始SLAM
 void Tracking::Reset()
 {
 
@@ -1559,21 +1611,25 @@ void Tracking::Reset()
             usleep(3000);
     }
 
+    // 重置localMapping
     // Reset Local Mapping
     cout << "Reseting Local Mapper...";
     mpLocalMapper->RequestReset();
     cout << " done" << endl;
 
+    // 重置loop Closing
     // Reset Loop Closing
     cout << "Reseting Loop Closing...";
     mpLoopClosing->RequestReset();
     cout << " done" << endl;
 
+    // 清除词袋数据库
     // Clear BoW Database
     cout << "Reseting Database...";
     mpKeyFrameDB->clear();
     cout << " done" << endl;
 
+    // 清除地图
     // Clear Map (this erase MapPoints and KeyFrames)
     mpMap->clear();
 
@@ -1596,6 +1652,9 @@ void Tracking::Reset()
         mpViewer->Release();
 }
 
+
+// 重新加载设置
+// The focal length should be similar or scale prediction will fail when projecting points？？
 void Tracking::ChangeCalibration(const string &strSettingPath)
 {
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);

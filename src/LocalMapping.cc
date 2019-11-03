@@ -17,6 +17,16 @@
 * You should have received a copy of the GNU General Public License
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
+/*
+    Local Mapping线程主要做的是以下事情：
+    1、插入关键帧
+    2、最近添加的地图点的剔除，地图点在添加以后要可追踪，要能正确地三角解算，所以要剔除，（尽管后面不一定要用）
+    3、创建新的地图点，通过共视图中的相连关键帧中的匹配点进行三角化来创建
+    4、局部BA，优化当前关键帧和在共视图中与之相连的关键帧
+    5、局部关键帧剔除，因为要保证得到精简的地图，后端全局优化得以进行
+*/
+
+
 
 #include "LocalMapping.h"
 #include "LoopClosing.h"
@@ -27,13 +37,14 @@
 
 namespace ORB_SLAM2
 {
-
+// 构造函数
 LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
 {
 }
 
+// 与其他线程的关联
 void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
 {
     mpLoopCloser = pLoopCloser;
@@ -44,6 +55,7 @@ void LocalMapping::SetTracker(Tracking *pTracker)
     mpTracker=pTracker;
 }
 
+// 本线程的主函数，多数工作在此完成
 void LocalMapping::Run()
 {
 
@@ -111,31 +123,35 @@ void LocalMapping::Run()
     SetFinish();
 }
 
+// 插入关键帧
 void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexNewKFs);
-    mlNewKeyFrames.push_back(pKF);
+    mlNewKeyFrames.push_back(pKF);//ml开头的变量，表示protected，list类型变量，在头文件中有定义
     mbAbortBA=true;
 }
 
-
+// 检查队列，是否有等待处理的关键帧
 bool LocalMapping::CheckNewKeyFrames()
 {
     unique_lock<mutex> lock(mMutexNewKFs);
     return(!mlNewKeyFrames.empty());
 }
 
+// 处理新的关键帧
 void LocalMapping::ProcessNewKeyFrame()
 {
     {
         unique_lock<mutex> lock(mMutexNewKFs);
-        mpCurrentKeyFrame = mlNewKeyFrames.front();
-        mlNewKeyFrames.pop_front();
+        mpCurrentKeyFrame = mlNewKeyFrames.front();// 取出list中的头部元素
+        mlNewKeyFrames.pop_front();// 删掉头部元素
     }
 
+    // 计算词袋模型
     // Compute Bags of Words structures
     mpCurrentKeyFrame->ComputeBoW();
 
+    // 关联地图点
     // Associate MapPoints to the new keyframe and update normal and descriptor
     const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
 
@@ -167,6 +183,7 @@ void LocalMapping::ProcessNewKeyFrame()
     mpMap->AddKeyFrame(mpCurrentKeyFrame);
 }
 
+// 地图点剔除
 void LocalMapping::MapPointCulling()
 {
     // Check Recent Added MapPoints
@@ -204,6 +221,7 @@ void LocalMapping::MapPointCulling()
     }
 }
 
+// 产生新的地图点
 void LocalMapping::CreateNewMapPoints()
 {
     // Retrieve neighbor keyframes in covisibility graph
@@ -451,6 +469,7 @@ void LocalMapping::CreateNewMapPoints()
     }
 }
 
+// 检查并融合当前关键帧与相邻（两级相邻）重复的MapPoints
 void LocalMapping::SearchInNeighbors()
 {
     // Retrieve neighbor keyframes
@@ -533,6 +552,7 @@ void LocalMapping::SearchInNeighbors()
     mpCurrentKeyFrame->UpdateConnections();
 }
 
+// 
 cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
 {
     cv::Mat R1w = pKF1->GetRotation();
@@ -552,6 +572,7 @@ cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
     return K1.t().inv()*t12x*R12*K2.inv();
 }
 
+// 请求停止，应该是用于线程协调同步等待等功能，以下各函数同理
 void LocalMapping::RequestStop()
 {
     unique_lock<mutex> lock(mMutexStop);
@@ -600,6 +621,7 @@ void LocalMapping::Release()
     cout << "Local Mapping RELEASE" << endl;
 }
 
+// 
 bool LocalMapping::AcceptKeyFrames()
 {
     unique_lock<mutex> lock(mMutexAccept);
@@ -624,11 +646,13 @@ bool LocalMapping::SetNotStop(bool flag)
     return true;
 }
 
+// 进行BA优化
 void LocalMapping::InterruptBA()
 {
     mbAbortBA = true;
 }
 
+// 剔除关键帧
 void LocalMapping::KeyFrameCulling()
 {
     // Check redundant keyframes (only local keyframes)

@@ -18,11 +18,8 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-<<<<<<< HEAD
 //这块儿从代码内容和网上参考文章来看，实现的是各种数据类型的转换,主要是Eigen，cv::mat，g2o::SE3Quat，vector，ORB中使用的是cv：：mat的类型，优化器中使用的是g2o::SE3Quat类型，
 //这块儿从结构上看不是核心部分，考虑略看
-=======
->>>>>>> deffbeb704737e86354e8b46897cd353c876151d
 
 #include "Converter.h"
 
