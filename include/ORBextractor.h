@@ -81,6 +81,7 @@ public:
     std::vector<float> inline GetInverseScaleSigmaSquares(){
         return mvInvLevelSigma2;
     }
+<<<<<<< HEAD
 <<<<<<< aee3283a29daf9a0b79288e3752db8e4620691bc
 
     std::vector<cv::Mat> mvImagePyramid;
@@ -89,6 +90,8 @@ protected:
 
     void ComputePyramid(cv::Mat image);
 =======
+=======
+>>>>>>> 1e76f8388f36db6cf363f79e01d1252501d67a14
     // 储存各层级图片
     std::vector<cv::Mat> mvImagePyramid;
 
@@ -96,7 +99,10 @@ protected:
     // 计算高斯金字塔
     void ComputePyramid(cv::Mat image);
     // 对图像金字塔中的每一层图像进行特征点的计算
+<<<<<<< HEAD
 >>>>>>> 2019/11/08
+=======
+>>>>>>> 1e76f8388f36db6cf363f79e01d1252501d67a14
     void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);    
     std::vector<cv::KeyPoint> DistributeOctTree(const std::vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
                                            const int &maxX, const int &minY, const int &maxY, const int &nFeatures, const int &level);

@@ -190,10 +190,14 @@ public:
 
 private:
 
+<<<<<<< HEAD
 <<<<<<< aee3283a29daf9a0b79288e3752db8e4620691bc
 =======
 
 >>>>>>> 2019/11/08
+=======
+
+>>>>>>> 1e76f8388f36db6cf363f79e01d1252501d67a14
     // Undistort keypoints given OpenCV distortion parameters.
     // Only for the RGB-D case. Stereo must be already rectified!
     // (called in the constructor).
