@@ -29,6 +29,11 @@ namespace ORB_SLAM2
 long unsigned int MapPoint::nNextId=0;
 mutex MapPoint::mGlobalMutex;
 
+// 给定了坐标和keyFrame，构造MapPoints
+// 参数Pos 表示MapPoints的世界坐标
+// pRefKF 表示 keyframe
+// pmap   表示 Map 
+
 MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     mnFirstKFid(pRefKF->mnId), mnFirstFrame(pRefKF->mnFrameId), nObs(0), mnTrackReferenceForFrame(0),
     mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
@@ -42,6 +47,12 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
     mnId=nNextId++;
 }
+
+// 给定了坐标和Frame，构造MapPoints
+// 参数Pos 表示MapPoints的世界坐标
+// pFrame 表示 frame
+// pmap   表示 Map 
+// idxf   表示MapPoints在Frame中的索引
 
 MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF):
     mnFirstKFid(-1), mnFirstFrame(pFrame->mnId), nObs(0), mnTrackReferenceForFrame(0), mnLastFrameSeen(0),
@@ -95,6 +106,9 @@ KeyFrame* MapPoint::GetReferenceKeyFrame()
     return mpRefKF;
 }
 
+// 添加观测
+// 记录哪些keyFrame能观测到该MapPoint
+// 是建立共视关系的基础
 void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
 {
     unique_lock<mutex> lock(mMutexFeatures);
@@ -108,6 +122,7 @@ void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
         nObs++;
 }
 
+// 擦除观测
 void MapPoint::EraseObservation(KeyFrame* pKF)
 {
     bool bBad=false;
@@ -125,7 +140,8 @@ void MapPoint::EraseObservation(KeyFrame* pKF)
 
             if(mpRefKF==pKF)
                 mpRefKF=mObservations.begin()->first;
-
+            
+            // 如果少于2帧观测到该点，丢弃
             // If only 2 observations or less, discard point
             if(nObs<=2)
                 bBad=true;
@@ -148,6 +164,7 @@ int MapPoint::Observations()
     return nObs;
 }
 
+// 为Frame传递该MapPoint丢弃的信息
 void MapPoint::SetBadFlag()
 {
     map<KeyFrame*,size_t> obs;
@@ -174,6 +191,8 @@ MapPoint* MapPoint::GetReplaced()
     return mpReplaced;
 }
 
+
+// 替换MapPoints，在闭环的融合时会用到这个函数
 void MapPoint::Replace(MapPoint* pMP)
 {
     if(pMP->mnId==this->mnId)
@@ -239,6 +258,7 @@ float MapPoint::GetFoundRatio()
     return static_cast<float>(mnFound)/mnVisible;
 }
 
+// MapPoints也有描述子，他用的是某个帧中的3D点的描述子，这里计算一下要不要更新描述子
 void MapPoint::ComputeDistinctiveDescriptors()
 {
     // Retrieve all observed descriptors
@@ -370,6 +390,7 @@ void MapPoint::UpdateNormalAndDepth()
     }
 }
 
+// 以下几段几个函数应该是考虑在图像金字塔不同尺度下搜索的情况
 float MapPoint::GetMinDistanceInvariance()
 {
     unique_lock<mutex> lock(mMutexPos);

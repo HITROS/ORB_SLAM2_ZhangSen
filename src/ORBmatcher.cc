@@ -287,6 +287,8 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
     return nmatches;
 }
 
+// 本函数利用将相机坐标系下的locationMapPoints投影到图像坐标系，
+// 在其投影点附近根据描述子距离选取匹配,由此增加当前帧的MapPoints
 int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapPoint*> &vpPoints, vector<MapPoint*> &vpMatched, int th)
 {
     // Get Calibration Parameters for later projection
@@ -519,6 +521,8 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
     return nmatches;
 }
 
+// 通过词袋对关键帧和当前帧中的特征点进行快速匹配，不属于同一节点的特征点直接跳过匹配，
+// 对属于同一节点的进行匹配
 int ORBmatcher::SearchByBoW(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches12)
 {
     const vector<cv::KeyPoint> &vKeysUn1 = pKF1->mvKeysUn;
