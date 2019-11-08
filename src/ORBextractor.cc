@@ -66,6 +66,10 @@
 using namespace cv;
 using namespace std;
 
+/*
+    ORB_SLAM中提取特征点时将图像划分为若干个小块，然后在每个小块设置提取特征点的数量并设置相应的阈值，
+    使得提取的特征点更加均匀
+*/
 namespace ORB_SLAM2
 {
 
@@ -1104,6 +1108,7 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
     }
 }
 
+// 计算高斯金字塔
 void ORBextractor::ComputePyramid(cv::Mat image)
 {
     for (int level = 0; level < nlevels; ++level)

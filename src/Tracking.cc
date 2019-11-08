@@ -671,6 +671,7 @@ void Tracking::MonocularInitialization()
             }
 
             // Set Frame Poses
+            // Tcw 表示世界坐标系下相机的位姿
             mInitialFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
             cv::Mat Tcw = cv::Mat::eye(4,4,CV_32F);
             Rcw.copyTo(Tcw.rowRange(0,3).colRange(0,3));

@@ -25,3 +25,10 @@ list类型的变量有一个函数pushback（）可以把元素加在list的最�
 
 相比于localMapping,tracking线程只是判断当前帧是否需要加入关键帧，并没有真的加入地图，
 因为tracking线程的主要功能是局部定位，而处理地图中的关键帧，地图点，包括如何加入，如何删除的工作是在LocalMapping线程中完成的
+
+插入MapPoints有三个地方
+1、Tracking的初始化时候插入MapPoints
+2、Tracking生成关键帧的时候为双目和RGBD生成一些MapPoints
+3、Localmapping通过帧间关系进行三角化或者是反投影得到新的MapPoints
+
+LoopClosing.cc 204行左右有个地方可能有BUG，i和iG

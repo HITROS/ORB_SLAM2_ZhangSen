@@ -57,7 +57,7 @@ Frame::Frame(const Frame &frame)
         SetPose(frame.mTcw);
 }
 
-
+// 双目的初始化
 Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
      mpReferenceKF(static_cast<KeyFrame*>(NULL))
@@ -74,6 +74,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
+    // 同时对左右目进行特征提取
     // ORB extraction
     thread threadLeft(&Frame::ExtractORB,this,0,imLeft);
     thread threadRight(&Frame::ExtractORB,this,1,imRight);
@@ -227,6 +228,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     AssignFeaturesToGrid();
 }
 
+// 把特征点安排进Grid，加快匹配
 void Frame::AssignFeaturesToGrid()
 {
     int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
@@ -244,6 +246,7 @@ void Frame::AssignFeaturesToGrid()
     }
 }
 
+// 提取ORB特征
 void Frame::ExtractORB(int flag, const cv::Mat &im)
 {
     if(flag==0)
@@ -252,12 +255,14 @@ void Frame::ExtractORB(int flag, const cv::Mat &im)
         (*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight);
 }
 
+// 设置相机的位姿，然后后面会调用一个函数UpdatePoseMatrices() 来改变mRcw,mRwc等变量的值
 void Frame::SetPose(cv::Mat Tcw)
 {
     mTcw = Tcw.clone();
     UpdatePoseMatrices();
 }
 
+// 更新位姿矩阵
 void Frame::UpdatePoseMatrices()
 { 
     mRcw = mTcw.rowRange(0,3).colRange(0,3);
@@ -266,6 +271,7 @@ void Frame::UpdatePoseMatrices()
     mOw = -mRcw.t()*mtcw;
 }
 
+// 判断是否在视野内
 bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
 {
     pMP->mbTrackInView = false;
@@ -324,6 +330,7 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
     return true;
 }
 
+// 获得在指定区域，指定尺度的特征点，为搜索匹配做准备
 vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel, const int maxLevel) const
 {
     vector<size_t> vIndices;
@@ -391,7 +398,7 @@ bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
     return true;
 }
 
-
+// 计算BOW，每一帧都需要BOW以便回环检测和重定位
 void Frame::ComputeBoW()
 {
     if(mBowVec.empty())
@@ -401,6 +408,7 @@ void Frame::ComputeBoW()
     }
 }
 
+// 对于双目来讲，输入给Frame的图像需要是已经矫正过的图像
 void Frame::UndistortKeyPoints()
 {
     if(mDistCoef.at<float>(0)==0.0)
@@ -433,6 +441,7 @@ void Frame::UndistortKeyPoints()
     }
 }
 
+// 计算图像的边界
 void Frame::ComputeImageBounds(const cv::Mat &imLeft)
 {
     if(mDistCoef.at<float>(0)!=0.0)
@@ -463,6 +472,7 @@ void Frame::ComputeImageBounds(const cv::Mat &imLeft)
     }
 }
 
+// 计算双目的匹配
 void Frame::ComputeStereoMatches()
 {
     mvuRight = vector<float>(N,-1.0f);
@@ -473,6 +483,7 @@ void Frame::ComputeStereoMatches()
     const int nRows = mpORBextractorLeft->mvImagePyramid[0].rows;
 
     //Assign keypoints to row table
+    // 一个特征点在一个带状范围内搜索匹配特征点
     vector<vector<size_t> > vRowIndices(nRows,vector<size_t>());
 
     for(int i=0; i<nRows; i++)
@@ -497,6 +508,7 @@ void Frame::ComputeStereoMatches()
     const float minD = 0;
     const float maxD = mbf/minZ;
 
+    // 为每一个特征点在右图中找到匹配点，再通过SAD做亚像素匹配
     // For each left keypoint search a match in the right image
     vector<pair<int, int> > vDistIdx;
     vDistIdx.reserve(N);
@@ -622,7 +634,7 @@ void Frame::ComputeStereoMatches()
             }
         }
     }
-
+    //  剔除SAD匹配偏差较大的点
     sort(vDistIdx.begin(),vDistIdx.end());
     const float median = vDistIdx[vDistIdx.size()/2].first;
     const float thDist = 1.5f*1.4f*median;
@@ -663,6 +675,7 @@ void Frame::ComputeStereoFromRGBD(const cv::Mat &imDepth)
     }
 }
 
+// 反投影到世界坐标系
 cv::Mat Frame::UnprojectStereo(const int &i)
 {
     const float z = mvDepth[i];
